@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { useCart } from '../../contexts/CartContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { Minus, Plus, Trash2, ShoppingCart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useCart } from "../../contexts/CartContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../../firebase/config";
+import { Minus, Plus, Trash2, ShoppingCart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
 declare global {
   interface Window {
@@ -23,7 +24,7 @@ const Cart: React.FC = () => {
       acc[item.supplierId] = {
         supplierName: item.supplierName,
         items: [],
-        total: 0
+        total: 0,
       };
     }
     acc[item.supplierId].items.push(item);
@@ -31,6 +32,7 @@ const Cart: React.FC = () => {
     return acc;
   }, {} as { [key: string]: { supplierName: string; items: typeof cartItems; total: number } });
 
+  // ✅ Save Order to Firebase with SweetAlert2
   const saveOrderToFirebase = async (
     supplierId: string,
     supplierName: string,
@@ -38,16 +40,16 @@ const Cart: React.FC = () => {
     paymentMode: string,
     paymentId: string
   ) => {
-    const orderItems = items.map(item => ({
+    const orderItems = items.map((item) => ({
       name: item.name,
       qty: item.quantity,
       price: item.price,
-      unit: item.unit
+      unit: item.unit,
     }));
 
-    const totalPrice = items.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const totalPrice = items.reduce((total, item) => total + item.price * item.quantity, 0);
 
-    await addDoc(collection(db, 'orders'), {
+    await addDoc(collection(db, "orders"), {
       vendorId: userData?.uid,
       vendorName: userData?.name,
       supplierId,
@@ -56,52 +58,82 @@ const Cart: React.FC = () => {
       totalPrice,
       paymentMode,
       paymentId,
-      status: 'Pending',
-      createdAt: serverTimestamp()
+      status: "Pending",
+      createdAt: serverTimestamp(),
     });
 
-    items.forEach(item => removeFromCart(item.id));
-    alert('Order placed successfully!');
-    navigate('/vendor/orders');
+    items.forEach((item) => removeFromCart(item.id));
+
+    // ✅ Success Popup
+    Swal.fire({
+      icon: "success",
+      title: "✅ Order Placed!",
+      html: `<b>Your order with ${supplierName}</b> has been placed successfully.`,
+      confirmButtonText: "Go to My Orders",
+      confirmButtonColor: "#16a34a",
+    }).then(() => {
+      navigate("/vendor/orders");
+    });
   };
 
+  // ✅ Place Order with Loading Popup
   const placeOrder = async (
     supplierId: string,
     supplierName: string,
     items: typeof cartItems,
-    paymentMode: string = 'COD',
-    paymentId: string = ''
+    paymentMode: string = "COD",
+    paymentId: string = ""
   ) => {
     if (!userData) return;
 
     setPlacing(true);
+
+    // Show Loading Popup
+    Swal.fire({
+      title: "Placing Order...",
+      text: "Please wait while we process your order.",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
     try {
       await saveOrderToFirebase(supplierId, supplierName, items, paymentMode, paymentId);
     } catch (error) {
-      console.error('Error placing order:', error);
-      alert('Error placing order. Please try again.');
+      console.error("Error placing order:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Order Failed",
+        text: "Something went wrong. Please try again.",
+      });
+    } finally {
+      setPlacing(false);
     }
-    setPlacing(false);
   };
 
-  const handleRazorpayPayment = async (supplierId: string, supplierName: string, items: typeof cartItems, total: number) => {
+  // ✅ Razorpay Payment
+  const handleRazorpayPayment = async (
+    supplierId: string,
+    supplierName: string,
+    items: typeof cartItems,
+    total: number
+  ) => {
     const options = {
-     key: "rzp_test_1DP5mmOlF5G5ag",
+      key: "rzp_test_1DP5mmOlF5G5ag",
       amount: total * 100,
-      currency: 'INR',
-      name: 'StreetServe',
-      description: 'Payment for order',
+      currency: "INR",
+      name: "StreetServe",
+      description: "Payment for order",
       handler: function (response: any) {
         const paymentId = response.razorpay_payment_id;
-        placeOrder(supplierId, supplierName, items, 'Online', paymentId);
+        placeOrder(supplierId, supplierName, items, "Online", paymentId);
       },
       prefill: {
         name: userData?.name,
-        email: userData?.email
+        email: userData?.email,
       },
       theme: {
-        color: '#F97316'
-      }
+        color: "#F97316",
+      },
     };
 
     const rzp = new window.Razorpay(options);
@@ -115,7 +147,7 @@ const Cart: React.FC = () => {
         <h3 className="mt-2 text-sm font-medium text-gray-900">Your cart is empty</h3>
         <p className="mt-1 text-sm text-gray-500">Start adding some products to your cart.</p>
         <button
-          onClick={() => navigate('/vendor')}
+          onClick={() => navigate("/vendor")}
           className="mt-4 bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg"
         >
           Browse Products
@@ -136,10 +168,15 @@ const Cart: React.FC = () => {
 
           <div className="p-6 space-y-4">
             {items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between py-4 border-b border-gray-200 last:border-b-0">
+              <div
+                key={item.id}
+                className="flex items-center justify-between py-4 border-b border-gray-200 last:border-b-0"
+              >
                 <div className="flex-1">
                   <h3 className="font-medium text-gray-900">{item.name}</h3>
-                  <p className="text-sm text-gray-600">₹{item.price} per {item.unit}</p>
+                  <p className="text-sm text-gray-600">
+                    ₹{item.price} per {item.unit}
+                  </p>
                 </div>
 
                 <div className="flex items-center space-x-3">
@@ -181,7 +218,7 @@ const Cart: React.FC = () => {
                   disabled={placing}
                   className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50"
                 >
-                  {placing ? 'Placing...' : 'Place Order (COD)'}
+                  {placing ? "Placing..." : "Place Order (COD)"}
                 </button>
                 <button
                   onClick={() => handleRazorpayPayment(supplierId, supplierName, items, total)}
@@ -199,12 +236,11 @@ const Cart: React.FC = () => {
         <div className="flex justify-between items-center">
           <div>
             <h3 className="text-lg font-semibold">Grand Total: ₹{getTotalPrice()}</h3>
-            <p className="text-sm text-gray-600">Choose your preferred payment mode per supplier.</p>
+            <p className="text-sm text-gray-600">
+              Choose your preferred payment mode per supplier.
+            </p>
           </div>
-          <button
-            onClick={clearCart}
-            className="text-red-500 hover:text-red-600 font-medium"
-          >
+          <button onClick={clearCart} className="text-red-500 hover:text-red-600 font-medium">
             Clear Cart
           </button>
         </div>

@@ -88,52 +88,45 @@ const VendorDashboard: React.FC = () => {
   }
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 via-purple-100 to-teal-100 p-0 m-0">
-      {/* Added to Cart Popup */}
-      {showCartPopup && (
-        <div className="fixed top-8 right-8 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg font-semibold text-lg animate-fade-in">
-          Added to cart!
-        </div>
-      )}
-      {/* Header with Search and Action */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full p-0 m-0">
-        <div className="w-full bg-gradient-to-r from-white via-gray-100 to-gray-200 rounded-xl shadow-lg py-8 px-4 mb-8">
-          <h1 className="text-4xl font-extrabold text-indigo-800 mb-2 text-center drop-shadow-lg animate-fade-in">Browse Raw Materials</h1>
-          <div className="text-lg text-gray-600 mb-6 text-center">Find the best ingredients for your street food business</div>
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto justify-center">
-            <div className="relative w-full sm:w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 w-6 h-6" />
-              <input
-                type="text"
-                placeholder="Search products or suppliers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border-2 border-indigo-300 rounded-xl shadow focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-lg transition"
-              />
-            </div>
-          </div>
+   <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 via-purple-100 to-teal-100 p-0 m-0">
+  {/* Header with Search and Action */}
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full p-0 m-0">
+    <div className="w-full bg-gradient-to-r from-white via-gray-100 to-gray-200 rounded-xl shadow-lg py-8 px-4 mb-8">
+      <h1 className="text-4xl font-extrabold text-indigo-800 mb-2 text-center drop-shadow-lg animate-fade-in">Browse Raw Materials</h1>
+      <div className="text-lg text-gray-600 mb-6 text-center">Find the best ingredients for your street food business</div>
+      <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto justify-center">
+        <div className="relative w-full sm:w-96">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 w-6 h-6" />
+          <input
+            type="text"
+            placeholder="Search products or suppliers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 border-2 border-indigo-300 rounded-xl shadow focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-lg transition"
+          />
         </div>
       </div>
-      {/* ...existing code... */}
-      {/* Action Buttons & Voice Assistant */}
-      <div className="flex flex-col sm:flex-row sm:items-start gap-6 mt-6 w-full p-0 m-0">
-        <div className="flex flex-col items-end w-full sm:w-auto">
-          <Link
-            to="/vendor/orders"
-            className="w-full sm:w-auto bg-gradient-to-r from-blue-400 via-purple-500 to-teal-500 text-white px-8 py-3 rounded-xl shadow-lg hover:from-blue-500 hover:to-teal-700 text-lg font-bold flex items-center justify-center mb-4 transition-all duration-300"
-          >
-            <span className="mr-2">🛒</span> View Orders
-          </Link>
-        </div>
-  {/* Voice Assistant Component */}
-  <div className="w-full sm:w-auto flex-1">
-    <VoiceOrderAssistant
-      onOrderProcessed={(items) => {
-        console.log('Voice order processed:', items);
-      }}
-    />
+    </div>
   </div>
-</div>
+  {/* Action Buttons & Voice Assistant */}
+  <div className="flex flex-col sm:flex-row sm:items-start gap-6 mt-6 w-full p-0 m-0">
+    <div className="flex flex-col items-end w-full sm:w-auto">
+      <Link
+        to="/vendor/orders"
+        className="w-full sm:w-auto bg-gradient-to-r from-blue-400 via-purple-500 to-teal-500 text-white px-8 py-3 rounded-xl shadow-lg hover:from-blue-500 hover:to-teal-700 text-lg font-bold flex items-center justify-center mb-4 transition-all duration-300"
+      >
+        <span className="mr-2">🛒</span> View Orders
+      </Link>
+    </div>
+    {/* Voice Assistant Component */}
+    <div className="w-full sm:w-auto flex-1">
+      <VoiceOrderAssistant
+        onOrderProcessed={(items) => {
+          console.log('Voice order processed:', items);
+        }}
+      />
+    </div>
+  </div>
 
 
       {Object.keys(groupedProducts).length === 0 ? (
