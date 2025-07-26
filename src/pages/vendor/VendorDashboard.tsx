@@ -105,7 +105,6 @@ const VendorDashboard: React.FC = () => {
       </div>
     </div>
   </div>
-// ...existing code...
 
 
 {/* Action Buttons & Voice Assistant */}
