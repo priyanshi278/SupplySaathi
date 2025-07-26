@@ -14,6 +14,7 @@ const VendorDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [suppliers, setSuppliers] = useState<{ [key: string]: string }>({});
   const [showCartPopup, setShowCartPopup] = useState(false);
+  const [cartPopupMessage, setCartPopupMessage] = useState('');
 
   const { addToCart } = useCart();
 
@@ -64,8 +65,12 @@ const VendorDashboard: React.FC = () => {
       supplierId: product.supplierId,
       supplierName: product.supplierName
     });
+    setCartPopupMessage('Added to cart');
     setShowCartPopup(true);
-    setTimeout(() => setShowCartPopup(false), 1500);
+    setTimeout(() => {
+      setShowCartPopup(false);
+      setCartPopupMessage('');
+    }, 1500);
   };
 
   const groupedProducts = filteredProducts.reduce((acc, product) => {
@@ -88,7 +93,13 @@ const VendorDashboard: React.FC = () => {
   }
 
   return (
-   <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 via-purple-100 to-teal-100 p-0 m-0">
+   <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 via-purple-100 to-teal-100 p-0 m-0 relative">
+  {/* Cart Popup Message */}
+  {showCartPopup && (
+    <div style={{position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999, transition: 'opacity 0.3s', opacity: showCartPopup ? 1 : 0}} className="bg-gradient-to-r from-green-400 via-green-500 to-green-600 text-white px-8 py-4 rounded-xl shadow-2xl text-xl font-bold">
+      {cartPopupMessage}
+    </div>
+  )}
   {/* Header with Search and Action */}
   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full p-0 m-0">
     <div className="w-full bg-gradient-to-r from-white via-gray-100 to-gray-200 rounded-xl shadow-lg py-8 px-4 mb-8">
