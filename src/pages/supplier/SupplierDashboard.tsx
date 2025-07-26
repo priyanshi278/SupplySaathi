@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import { Product } from '../../types';
@@ -16,6 +16,7 @@ const SupplierDashboard: React.FC = () => {
     price: '',
     unit: ''
   });
+  const [editId, setEditId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -43,20 +44,31 @@ const SupplierDashboard: React.FC = () => {
     if (!userData) return;
 
     try {
-      await addDoc(collection(db, 'products'), {
-        supplierId: userData.uid,
-        name: formData.name,
-        price: parseFloat(formData.price),
-        unit: formData.unit,
-        createdAt: serverTimestamp()
-      });
-
+      if (editId) {
+        // Edit existing product
+        const productRef = doc(db, 'products', editId);
+        await updateDoc(productRef, {
+          name: formData.name,
+          price: parseFloat(formData.price),
+          unit: formData.unit
+        });
+        setEditId(null);
+      } else {
+        // Add new product
+        await addDoc(collection(db, 'products'), {
+          supplierId: userData.uid,
+          name: formData.name,
+          price: parseFloat(formData.price),
+          unit: formData.unit,
+          createdAt: serverTimestamp()
+        });
+      }
       setFormData({ name: '', price: '', unit: '' });
       setShowAddForm(false);
       fetchProducts();
     } catch (error) {
-      console.error('Error adding product:', error);
-      alert('Error adding product. Please try again.');
+      console.error('Error saving product:', error);
+      alert('Error saving product. Please try again.');
     }
   };
 
@@ -83,7 +95,7 @@ const SupplierDashboard: React.FC = () => {
 
       {showAddForm && (
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold mb-4">Add New Product</h2>
+          <h2 className="text-lg font-semibold mb-4">{editId ? 'Edit Product' : 'Add New Product'}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Product Name</label>
@@ -96,7 +108,6 @@ const SupplierDashboard: React.FC = () => {
                 placeholder="e.g., Sunflower Oil, Potatoes, etc."
               />
             </div>
-            
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Price (₹)</label>
@@ -110,7 +121,6 @@ const SupplierDashboard: React.FC = () => {
                   placeholder="120.00"
                 />
               </div>
-              
               <div>
                 <label className="block text-sm font-medium text-gray-700">Unit</label>
                 <input
@@ -123,17 +133,16 @@ const SupplierDashboard: React.FC = () => {
                 />
               </div>
             </div>
-
             <div className="flex space-x-3">
               <button
                 type="submit"
                 className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium"
               >
-                Add Product
+                {editId ? 'Save Changes' : 'Add Product'}
               </button>
               <button
                 type="button"
-                onClick={() => setShowAddForm(false)}
+                onClick={() => { setShowAddForm(false); setEditId(null); setFormData({ name: '', price: '', unit: '' }); }}
                 className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium"
               >
                 Cancel
@@ -156,7 +165,11 @@ const SupplierDashboard: React.FC = () => {
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">{product.name}</h3>
                 <div className="flex space-x-2">
-                  <button className="p-1 text-gray-400 hover:text-blue-500">
+                  <button className="p-1 text-gray-400 hover:text-blue-500" onClick={() => {
+                    setShowAddForm(true);
+                    setEditId(product.id);
+                    setFormData({ name: product.name, price: String(product.price), unit: product.unit });
+                  }}>
                     <Edit3 className="w-4 h-4" />
                   </button>
                   <button className="p-1 text-gray-400 hover:text-red-500">

@@ -12,7 +12,6 @@ const Login: React.FC = () => {
   const [role, setRole] = useState<'vendor' | 'supplier'>('vendor');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
   const { login, signup } = useAuth();
   const navigate = useNavigate();
 
@@ -20,7 +19,6 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
     try {
       if (isLogin) {
         await login(email, password);
@@ -33,29 +31,31 @@ const Login: React.FC = () => {
     }
     setLoading(false);
   };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-green-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div
+      className="min-h-screen flex items-center justify-center bg-cover bg-center"
+      style={{
+        backgroundImage:
+          "url('/login.jpg')",
+      }}
+    >
+      <div className="absolute inset-0 bg-black bg-opacity-40 z-0"></div>
+      <div className="max-w-md w-full space-y-8 bg-white bg-opacity-90 rounded-2xl shadow-2xl p-8 border border-gray-100 z-10 relative">
         <div className="text-center">
-          <div className="bg-orange-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+          <div className="bg-gradient-to-tr from-orange-500 to-yellow-400 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-md">
               <span className="text-orange-500 font-bold text-lg">SF</span>
             </div>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Street Food Hub</h2>
-          <p className="mt-2 text-gray-600">
-            {isLogin ? 'Sign in to your account' : 'Create your account'}
-          </p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{isLogin ? 'Login' : 'Sign Up'}</h2>
+          <p className="text-gray-600">{isLogin ? 'Welcome back! Login to your account.' : 'Create your account to get started.'}</p>
         </div>
-
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-sm">
               {error}
             </div>
           )}
-
           {!isLogin && (
             <>
               <div>
@@ -65,10 +65,9 @@ const Login: React.FC = () => {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                  className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition bg-white bg-opacity-80"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700">Phone</label>
                 <input
@@ -76,40 +75,38 @@ const Login: React.FC = () => {
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                  className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition bg-white bg-opacity-80"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700">Role</label>
                 <div className="mt-2 space-y-2">
-                  <label className="flex items-center">
+                  <label className="flex items-center cursor-pointer">
                     <input
                       type="radio"
                       value="vendor"
                       checked={role === 'vendor'}
                       onChange={(e) => setRole(e.target.value as 'vendor')}
-                      className="focus:ring-orange-500 h-4 w-4 text-orange-600 border-gray-300"
+                      className="focus:ring-orange-400 h-4 w-4 text-orange-600 border-gray-300"
                     />
                     <Store className="ml-2 w-4 h-4 text-orange-500" />
                     <span className="ml-2 text-sm text-gray-700">Street Food Vendor</span>
                   </label>
-                  <label className="flex items-center">
+                  <label className="flex items-center cursor-pointer">
                     <input
                       type="radio"
                       value="supplier"
                       checked={role === 'supplier'}
                       onChange={(e) => setRole(e.target.value as 'supplier')}
-                      className="focus:ring-orange-500 h-4 w-4 text-orange-600 border-gray-300"
+                      className="focus:ring-yellow-400 h-4 w-4 text-yellow-500 border-gray-300"
                     />
-                    <Truck className="ml-2 w-4 h-4 text-green-500" />
+                    <Truck className="ml-2 w-4 h-4 text-yellow-500" />
                     <span className="ml-2 text-sm text-gray-700">Raw Material Supplier</span>
                   </label>
                 </div>
               </div>
             </>
           )}
-
           <div>
             <label className="block text-sm font-medium text-gray-700">Email</label>
             <input
@@ -117,10 +114,9 @@ const Login: React.FC = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition bg-white bg-opacity-80"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700">Password</label>
             <input
@@ -128,28 +124,30 @@ const Login: React.FC = () => {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition bg-white bg-opacity-80"
             />
           </div>
-
           <button
             type="submit"
+            className="w-full py-2 px-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-md transition duration-200"
             disabled={loading}
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50"
           >
-            {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
+            {loading ? (
+              <span className="animate-pulse">{isLogin ? 'Logging in...' : 'Signing up...'}</span>
+            ) : (
+              isLogin ? 'Login' : 'Sign Up'
+            )}
           </button>
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-orange-600 hover:text-orange-500"
-            >
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
-          </div>
         </form>
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            className="text-orange-500 hover:underline font-medium"
+            onClick={() => setIsLogin(!isLogin)}
+          >
+            {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Login'}
+          </button>
+        </div>
       </div>
     </div>
   );
