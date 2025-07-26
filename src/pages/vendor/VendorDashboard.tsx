@@ -107,7 +107,6 @@ const VendorDashboard: React.FC = () => {
   </div>
 
 
-
 {/* Action Buttons & Voice Assistant */}
 <div className="flex flex-col sm:flex-row sm:items-start gap-6 mt-6 w-full p-0 m-0">
   <div className="flex flex-col items-end w-full sm:w-auto">
