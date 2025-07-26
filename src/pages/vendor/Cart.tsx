@@ -6,6 +6,12 @@ import { db } from '../../firebase/config';
 import { Minus, Plus, Trash2, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 const Cart: React.FC = () => {
   const { cartItems, updateQuantity, removeFromCart, clearCart, getTotalPrice } = useCart();
   const { userData } = useAuth();
@@ -25,42 +31,81 @@ const Cart: React.FC = () => {
     return acc;
   }, {} as { [key: string]: { supplierName: string; items: typeof cartItems; total: number } });
 
-  const placeOrder = async (supplierId: string, supplierName: string, items: typeof cartItems) => {
+  const saveOrderToFirebase = async (
+    supplierId: string,
+    supplierName: string,
+    items: typeof cartItems,
+    paymentMode: string,
+    paymentId: string
+  ) => {
+    const orderItems = items.map(item => ({
+      name: item.name,
+      qty: item.quantity,
+      price: item.price,
+      unit: item.unit
+    }));
+
+    const totalPrice = items.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+    await addDoc(collection(db, 'orders'), {
+      vendorId: userData?.uid,
+      vendorName: userData?.name,
+      supplierId,
+      supplierName,
+      items: orderItems,
+      totalPrice,
+      paymentMode,
+      paymentId,
+      status: 'Pending',
+      createdAt: serverTimestamp()
+    });
+
+    items.forEach(item => removeFromCart(item.id));
+    alert('Order placed successfully!');
+    navigate('/vendor/orders');
+  };
+
+  const placeOrder = async (
+    supplierId: string,
+    supplierName: string,
+    items: typeof cartItems,
+    paymentMode: string = 'COD',
+    paymentId: string = ''
+  ) => {
     if (!userData) return;
 
     setPlacing(true);
     try {
-      const orderItems = items.map(item => ({
-        name: item.name,
-        qty: item.quantity,
-        price: item.price,
-        unit: item.unit
-      }));
-
-      const totalPrice = items.reduce((total, item) => total + (item.price * item.quantity), 0);
-
-      await addDoc(collection(db, 'orders'), {
-        vendorId: userData.uid,
-        vendorName: userData.name,
-        supplierId,
-        supplierName,
-        items: orderItems,
-        totalPrice,
-        paymentMode: 'COD',
-        status: 'Pending',
-        createdAt: serverTimestamp()
-      });
-
-      // Remove ordered items from cart
-      items.forEach(item => removeFromCart(item.id));
-      
-      alert('Order placed successfully!');
-      navigate('/vendor/orders');
+      await saveOrderToFirebase(supplierId, supplierName, items, paymentMode, paymentId);
     } catch (error) {
       console.error('Error placing order:', error);
       alert('Error placing order. Please try again.');
     }
     setPlacing(false);
+  };
+
+  const handleRazorpayPayment = async (supplierId: string, supplierName: string, items: typeof cartItems, total: number) => {
+    const options = {
+     key: "rzp_test_1DP5mmOlF5G5ag",
+      amount: total * 100,
+      currency: 'INR',
+      name: 'StreetServe',
+      description: 'Payment for order',
+      handler: function (response: any) {
+        const paymentId = response.razorpay_payment_id;
+        placeOrder(supplierId, supplierName, items, 'Online', paymentId);
+      },
+      prefill: {
+        name: userData?.name,
+        email: userData?.email
+      },
+      theme: {
+        color: '#F97316'
+      }
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
   };
 
   if (cartItems.length === 0) {
@@ -128,15 +173,23 @@ const Cart: React.FC = () => {
               </div>
             ))}
 
-            <div className="flex justify-between items-center pt-4">
+            <div className="flex justify-between items-center pt-4 gap-4 flex-wrap">
               <span className="text-lg font-semibold">Total: ₹{total}</span>
-              <button
-                onClick={() => placeOrder(supplierId, supplierName, items)}
-                disabled={placing}
-                className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50"
-              >
-                {placing ? 'Placing Order...' : 'Place Order (COD)'}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => placeOrder(supplierId, supplierName, items)}
+                  disabled={placing}
+                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50"
+                >
+                  {placing ? 'Placing...' : 'Place Order (COD)'}
+                </button>
+                <button
+                  onClick={() => handleRazorpayPayment(supplierId, supplierName, items, total)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+                >
+                  Pay Online
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -146,7 +199,7 @@ const Cart: React.FC = () => {
         <div className="flex justify-between items-center">
           <div>
             <h3 className="text-lg font-semibold">Grand Total: ₹{getTotalPrice()}</h3>
-            <p className="text-sm text-gray-600">Payment Mode: Cash on Delivery</p>
+            <p className="text-sm text-gray-600">Choose your preferred payment mode per supplier.</p>
           </div>
           <button
             onClick={clearCart}
