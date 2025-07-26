@@ -7,10 +7,12 @@ import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import VendorDashboard from './pages/vendor/VendorDashboard';
+import VendorHome from './pages/vendor/VendorHome';
 import Cart from './pages/vendor/Cart';
 import Orders from './pages/vendor/Orders';
 import SupplierDashboard from './pages/supplier/SupplierDashboard';
 import SupplierOrders from './pages/supplier/SupplierOrders';
+// Removed SupplierHome import
 import Profile from './pages/Profile';
 
 
@@ -41,6 +43,14 @@ const AppContent: React.FC = () => {
             path="/vendor" 
             element={
               <ProtectedRoute role="vendor">
+                <VendorHome />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/vendor/dashboard" 
+            element={
+              <ProtectedRoute role="vendor">
                 <VendorDashboard />
               </ProtectedRoute>
             } 
@@ -65,6 +75,14 @@ const AppContent: React.FC = () => {
           {/* Supplier Routes */}
           <Route 
             path="/supplier" 
+            element={
+              <ProtectedRoute role="supplier">
+                <SupplierDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/supplier/dashboard" 
             element={
               <ProtectedRoute role="supplier">
                 <SupplierDashboard />

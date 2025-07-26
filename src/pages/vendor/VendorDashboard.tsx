@@ -85,58 +85,49 @@ const VendorDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">Browse Raw Materials</h1>
-        
-        <div className="flex items-center space-x-4 w-full sm:w-auto">
-          <div className="relative flex-1 sm:flex-none sm:w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search products or suppliers..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            />
-          </div>
+   <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 via-purple-100 to-teal-100 p-0 m-0">
+  {/* Header with Search and Action */}
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full p-0 m-0">
+    <div className="w-full bg-gradient-to-r from-white via-gray-100 to-gray-200 rounded-xl shadow-lg py-8 px-4 mb-8">
+      <h1 className="text-4xl font-extrabold text-indigo-800 mb-2 text-center drop-shadow-lg animate-fade-in">Browse Raw Materials</h1>
+      <div className="text-lg text-gray-600 mb-6 text-center">Find the best ingredients for your street food business</div>
+      <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto justify-center">
+        <div className="relative w-full sm:w-96">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 w-6 h-6" />
+          <input
+            type="text"
+            placeholder="Search products or suppliers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 border-2 border-indigo-300 rounded-xl shadow focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-lg transition"
+          />
         </div>
       </div>
-      <div className="flex items-center space-x-4 w-full sm:w-auto">
-  <div className="relative flex-1 sm:flex-none sm:w-64">
-    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-    <input
-      type="text"
-      placeholder="Search products or suppliers..."
-      value={searchTerm}
-      onChange={(e) => setSearchTerm(e.target.value)}
-      className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+    </div>
+  </div>
+// ...existing code...
+
+
+{/* Action Buttons & Voice Assistant */}
+<div className="flex flex-col sm:flex-row sm:items-start gap-6 mt-6 w-full p-0 m-0">
+  <div className="flex flex-col items-end w-full sm:w-auto">
+    <Link
+      to="/vendor/orders"
+      className="w-full sm:w-auto bg-gradient-to-r from-blue-400 via-purple-500 to-teal-500 text-white px-8 py-3 rounded-xl shadow-lg hover:from-blue-500 hover:to-teal-700 text-lg font-bold flex items-center justify-center mb-4 transition-all duration-300"
+    >
+      <span className="mr-2">🛒</span> View Orders
+    </Link>
+  </div>
+  {/* Voice Assistant Component */}
+  <div className="w-full sm:w-auto flex-1">
+    <VoiceOrderAssistant
+      onOrderProcessed={(items) => {
+        console.log('Voice order processed:', items);
+      }}
     />
   </div>
 </div>
 
-{/* ✅ Add these buttons below the search input */}
-<div className="flex flex-wrap gap-4 mt-2">
-  {/* <Link
-  to="/vendor/cart"
-  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
->
-  📤 Place Order
-</Link> */}
-
-<Link
-  to="/vendor/orders"
-  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition"
->
-  🛒 View Orders
-</Link>
-
-</div>
-
-
-      <VoiceOrderAssistant onOrderProcessed={(items) => {
-        console.log('Voice order processed:', items);
-      }} />
 
       {Object.keys(groupedProducts).length === 0 ? (
         <div className="text-center py-12">
@@ -147,32 +138,29 @@ const VendorDashboard: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-10 w-full">
           {Object.entries(groupedProducts).map(([supplierId, { supplierName, products }]) => (
-            <div key={supplierId} className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="bg-gray-50 px-6 py-4 border-b">
-                <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <Store className="w-5 h-5 mr-2 text-green-500" />
+            <div key={supplierId} className="bg-gradient-to-br from-white via-blue-100 to-teal-100 rounded-2xl shadow-xl overflow-hidden border-2 border-blue-300">
+              <div className="bg-gradient-to-r from-blue-200 via-purple-100 to-white px-8 py-6 border-b-2 border-blue-200">
+                <h2 className="text-2xl font-bold text-blue-700 flex items-center">
+                  <Store className="w-6 h-6 mr-2 text-teal-500" />
                   {supplierName}
                 </h2>
-                <p className="text-sm text-gray-600">{products.length} products available</p>
+                <p className="text-base text-blue-600 font-medium">{products.length} products available</p>
               </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 p-8">
                 {products.map((product) => (
-                  <div key={product.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="font-medium text-gray-900">{product.name}</h3>
-                      <span className="text-lg font-bold text-orange-600">₹{product.price}</span>
+                  <div key={product.id} className="bg-white border-2 border-blue-200 rounded-xl p-6 hover:shadow-lg transition-shadow flex flex-col justify-between">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="font-bold text-blue-700 text-lg">{product.name}</h3>
+                      <span className="text-xl font-bold text-teal-600">₹{product.price}</span>
                     </div>
-                    
-                    <p className="text-sm text-gray-600 mb-3">per {product.unit}</p>
-                    
+                    <p className="text-base text-gray-700 mb-4">per {product.unit}</p>
                     <button
                       onClick={() => handleAddToCart(product)}
-                      className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
+                      className="w-full bg-gradient-to-r from-blue-400 via-purple-500 to-teal-500 hover:from-blue-500 hover:to-teal-700 text-white py-3 px-6 rounded-xl font-bold transition-all duration-300 flex items-center justify-center"
                     >
-                      <Plus className="w-4 h-4 mr-2" />
+                      <Plus className="w-5 h-5 mr-2" />
                       Add to Cart
                     </button>
                   </div>
@@ -184,6 +172,6 @@ const VendorDashboard: React.FC = () => {
       )}
     </div>
   );
-};
+}
 
 export default VendorDashboard;
