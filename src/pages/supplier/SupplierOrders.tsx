@@ -1,9 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { useAuth } from '../../contexts/AuthContext';
-import { Order } from '../../types';
-import { Clock, CheckCircle, Truck, Package } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "../../firebase/config";
+import { useAuth } from "../../contexts/AuthContext";
+import { Order } from "../../types";
+import { Clock, CheckCircle, Truck, Package } from "lucide-react";
 
 const SupplierOrders: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -11,45 +19,57 @@ const SupplierOrders: React.FC = () => {
   const { userData } = useAuth();
 
   useEffect(() => {
-    if (!userData) return;
+    if (!userData?.uid) return;
+
+    setLoading(true);
 
     const q = query(
-      collection(db, 'orders'),
-      where('supplierId', '==', userData.uid),
-      orderBy('createdAt', 'desc')
+      collection(db, "orders"),
+      where("supplierId", "==", userData.uid),
+      orderBy("createdAt", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const ordersData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Order[];
-      
-      setOrders(ordersData);
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
+        const ordersData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Order[];
+
+        setOrders(ordersData);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Firestore error:", error);
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribe();
-  }, [userData]);
+  }, [userData?.uid]);
 
-  const updateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
+  const updateOrderStatus = async (
+    orderId: string,
+    newStatus: Order["status"]
+  ) => {
     try {
-      await updateDoc(doc(db, 'orders', orderId), {
-        status: newStatus
+      await updateDoc(doc(db, "orders", orderId), {
+        status: newStatus,
       });
     } catch (error) {
-      console.error('Error updating order status:', error);
-      alert('Error updating order status. Please try again.');
+      console.error("Error updating order status:", error);
+      alert("Error updating order status. Please try again.");
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Pending':
+      case "Pending":
         return <Clock className="w-5 h-5 text-yellow-500" />;
-      case 'Accepted':
+      case "Accepted":
         return <Package className="w-5 h-5 text-blue-500" />;
-      case 'Delivered':
+      case "Delivered":
         return <CheckCircle className="w-5 h-5 text-green-500" />;
       default:
         return <Clock className="w-5 h-5 text-gray-500" />;
@@ -58,14 +78,14 @@ const SupplierOrders: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Accepted':
-        return 'bg-blue-100 text-blue-800';
-      case 'Delivered':
-        return 'bg-green-100 text-green-800';
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "Accepted":
+        return "bg-blue-100 text-blue-800";
+      case "Delivered":
+        return "bg-green-100 text-green-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -84,8 +104,12 @@ const SupplierOrders: React.FC = () => {
       {orders.length === 0 ? (
         <div className="text-center py-12">
           <Truck className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No orders yet</h3>
-          <p className="mt-1 text-sm text-gray-500">Orders from vendors will appear here.</p>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">
+            No orders yet
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Orders from vendors will appear here.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -97,12 +121,17 @@ const SupplierOrders: React.FC = () => {
                     Order from {order.vendorName}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    {order.createdAt?.toDate?.()?.toLocaleDateString() || 'Date unavailable'}
+                    {order.createdAt?.toDate?.()?.toLocaleDateString() ||
+                      "Date unavailable"}
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
                   {getStatusIcon(order.status)}
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                      order.status
+                    )}`}
+                  >
                     {order.status}
                   </span>
                 </div>
@@ -110,7 +139,10 @@ const SupplierOrders: React.FC = () => {
 
               <div className="space-y-2 mb-4">
                 {order.items.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+                  <div
+                    key={index}
+                    className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0"
+                  >
                     <span className="text-gray-900">
                       {item.name} ({item.unit})
                     </span>
@@ -126,24 +158,26 @@ const SupplierOrders: React.FC = () => {
                   Total: ₹{order.totalPrice}
                 </span>
                 <div className="flex space-x-2">
-                  {order.status === 'Pending' && (
+                  {order.status === "Pending" && (
                     <button
-                      onClick={() => updateOrderStatus(order.id, 'Accepted')}
+                      onClick={() => updateOrderStatus(order.id, "Accepted")}
                       className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium"
                     >
                       Accept Order
                     </button>
                   )}
-                  {order.status === 'Accepted' && (
+                  {order.status === "Accepted" && (
                     <button
-                      onClick={() => updateOrderStatus(order.id, 'Delivered')}
+                      onClick={() => updateOrderStatus(order.id, "Delivered")}
                       className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium"
                     >
                       Mark as Delivered
                     </button>
                   )}
-                  {order.status === 'Delivered' && (
-                    <span className="text-green-600 font-medium">Order Completed</span>
+                  {order.status === "Delivered" && (
+                    <span className="text-green-600 font-medium">
+                      Order Completed
+                    </span>
                   )}
                 </div>
               </div>
