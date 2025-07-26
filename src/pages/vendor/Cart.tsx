@@ -1,0 +1,163 @@
+import React, { useState } from 'react';
+import { useCart } from '../../contexts/CartContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../firebase/config';
+import { Minus, Plus, Trash2, ShoppingCart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+const Cart: React.FC = () => {
+  const { cartItems, updateQuantity, removeFromCart, clearCart, getTotalPrice } = useCart();
+  const { userData } = useAuth();
+  const [placing, setPlacing] = useState(false);
+  const navigate = useNavigate();
+
+  const groupedItems = cartItems.reduce((acc, item) => {
+    if (!acc[item.supplierId]) {
+      acc[item.supplierId] = {
+        supplierName: item.supplierName,
+        items: [],
+        total: 0
+      };
+    }
+    acc[item.supplierId].items.push(item);
+    acc[item.supplierId].total += item.price * item.quantity;
+    return acc;
+  }, {} as { [key: string]: { supplierName: string; items: typeof cartItems; total: number } });
+
+  const placeOrder = async (supplierId: string, supplierName: string, items: typeof cartItems) => {
+    if (!userData) return;
+
+    setPlacing(true);
+    try {
+      const orderItems = items.map(item => ({
+        name: item.name,
+        qty: item.quantity,
+        price: item.price,
+        unit: item.unit
+      }));
+
+      const totalPrice = items.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+      await addDoc(collection(db, 'orders'), {
+        vendorId: userData.uid,
+        vendorName: userData.name,
+        supplierId,
+        supplierName,
+        items: orderItems,
+        totalPrice,
+        paymentMode: 'COD',
+        status: 'Pending',
+        createdAt: serverTimestamp()
+      });
+
+      // Remove ordered items from cart
+      items.forEach(item => removeFromCart(item.id));
+      
+      alert('Order placed successfully!');
+      navigate('/vendor/orders');
+    } catch (error) {
+      console.error('Error placing order:', error);
+      alert('Error placing order. Please try again.');
+    }
+    setPlacing(false);
+  };
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
+        <h3 className="mt-2 text-sm font-medium text-gray-900">Your cart is empty</h3>
+        <p className="mt-1 text-sm text-gray-500">Start adding some products to your cart.</p>
+        <button
+          onClick={() => navigate('/vendor')}
+          className="mt-4 bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg"
+        >
+          Browse Products
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-gray-900">Your Cart</h1>
+
+      {Object.entries(groupedItems).map(([supplierId, { supplierName, items, total }]) => (
+        <div key={supplierId} className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="bg-gray-50 px-6 py-4 border-b">
+            <h2 className="text-lg font-semibold text-gray-900">{supplierName}</h2>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {items.map((item) => (
+              <div key={item.id} className="flex items-center justify-between py-4 border-b border-gray-200 last:border-b-0">
+                <div className="flex-1">
+                  <h3 className="font-medium text-gray-900">{item.name}</h3>
+                  <p className="text-sm text-gray-600">₹{item.price} per {item.unit}</p>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      className="p-1 rounded-full hover:bg-gray-100"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="w-8 text-center">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      className="p-1 rounded-full hover:bg-gray-100"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <span className="font-medium text-gray-900 w-20 text-right">
+                    ₹{item.price * item.quantity}
+                  </span>
+
+                  <button
+                    onClick={() => removeFromCart(item.id)}
+                    className="p-1 text-red-500 hover:bg-red-50 rounded-full"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <div className="flex justify-between items-center pt-4">
+              <span className="text-lg font-semibold">Total: ₹{total}</span>
+              <button
+                onClick={() => placeOrder(supplierId, supplierName, items)}
+                disabled={placing}
+                className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50"
+              >
+                {placing ? 'Placing Order...' : 'Place Order (COD)'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold">Grand Total: ₹{getTotalPrice()}</h3>
+            <p className="text-sm text-gray-600">Payment Mode: Cash on Delivery</p>
+          </div>
+          <button
+            onClick={clearCart}
+            className="text-red-500 hover:text-red-600 font-medium"
+          >
+            Clear Cart
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Cart;
