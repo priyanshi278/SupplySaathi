@@ -44,7 +44,7 @@ const Login: React.FC = () => {
         <div className="text-center">
           <div className="bg-gradient-to-tr from-orange-500 to-yellow-400 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-md">
-              <span className="text-orange-500 font-bold text-lg">SF</span>
+              <span className="text-orange-500 font-bold text-lg">SS</span>
             </div>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">{isLogin ? 'Login' : 'Sign Up'}</h2>

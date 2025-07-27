@@ -25,10 +25,10 @@ const Header: React.FC = () => {
           >
             <div className="bg-orange-500 p-2 rounded-lg mr-3">
               <div className="w-6 h-6 bg-white rounded-sm flex items-center justify-center">
-                <span className="text-orange-500 font-bold text-sm">SF</span>
+                <span className="text-orange-500 font-bold text-sm">SS</span>
               </div>
             </div>
-            <h1 className="text-xl font-bold text-gray-900">Street Food Hub</h1>
+            <h1 className="text-xl font-bold text-gray-900">SupplySaathi</h1>
           </Link>
 
           <div className="flex items-center space-x-4">
