@@ -1,10 +1,9 @@
-import { useState, useRef, useCallback } from 'react';
-import { VoiceCommand } from '../types';
+import { useState, useRef, useCallback } from "react";
 
 interface UseVoiceRecognitionReturn {
   isListening: boolean;
   transcript: string;
-  startListening: (language?: string) => void;
+  startListening: (language?: string, onEnd?: (text: string) => void) => void;
   stopListening: () => void;
   resetTranscript: () => void;
   isSupported: boolean;
@@ -12,59 +11,64 @@ interface UseVoiceRecognitionReturn {
 
 export const useVoiceRecognition = (): UseVoiceRecognitionReturn => {
   const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
+  const [transcript, setTranscript] = useState("");
   const recognitionRef = useRef<any>(null);
 
-  const isSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+  const isSupported =
+    "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
 
-  const startListening = useCallback((language = 'hi-IN') => {
-    if (!isSupported) return;
+  const startListening = useCallback(
+    (language = "hi-IN", onEnd?: (text: string) => void) => {
+      if (!isSupported) return;
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    recognitionRef.current = new SpeechRecognition();
-    
-    recognitionRef.current.continuous = true;
-    recognitionRef.current.interimResults = true;
-    recognitionRef.current.lang = language;
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-    recognitionRef.current.onstart = () => {
-      setIsListening(true);
-    };
+      const recognition = new SpeechRecognition();
+      recognition.lang = language;
+      recognition.interimResults = true;
+      recognition.continuous = false;
 
-    recognitionRef.current.onresult = (event: any) => {
-      let finalTranscript = '';
-      
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
+      let finalTranscript = "";
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setTranscript(""); // reset transcript on start
+      };
+
+      recognition.onresult = (event: any) => {
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const chunk = event.results[i][0].transcript.trim();
+          if (event.results[i].isFinal) {
+            finalTranscript += chunk + " ";
+          } else {
+            interim += chunk + " ";
+          }
         }
-      }
-      
-      if (finalTranscript) {
-        setTranscript(finalTranscript);
-      }
-    };
+        setTranscript(finalTranscript || interim);
+      };
 
-    recognitionRef.current.onerror = (event: any) => {
-      console.error('Speech recognition error:', event.error);
-      setIsListening(false);
-    };
+      recognition.onerror = (err: any) => {
+        console.error("🎤 Speech Recognition Error:", err);
+        setIsListening(false);
+      };
 
-    recognitionRef.current.onend = () => {
-      setIsListening(false);
-    };
+      recognition.onend = () => {
+        setIsListening(false);
+        const text = finalTranscript.trim() || transcript.trim();
+        console.log("🎤 Final Transcript:", text);
+        if (onEnd) onEnd(text);
+      };
 
-    recognitionRef.current.start();
-  }, [isSupported]);
+      recognitionRef.current = recognition;
+      recognition.start();
+    },
+    [isSupported, transcript]
+  );
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-  }, []);
-
-  const resetTranscript = useCallback(() => {
-    setTranscript('');
+    recognitionRef.current?.stop();
   }, []);
 
   return {
@@ -72,7 +76,7 @@ export const useVoiceRecognition = (): UseVoiceRecognitionReturn => {
     transcript,
     startListening,
     stopListening,
-    resetTranscript,
-    isSupported
+    resetTranscript: () => setTranscript(""),
+    isSupported,
   };
 };

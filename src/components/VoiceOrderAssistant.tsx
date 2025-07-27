@@ -1,243 +1,326 @@
-import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, Volume2 } from 'lucide-react';
-import { useVoiceRecognition } from '../hooks/useVoiceRecognition';
-import { useCart } from '../contexts/CartContext';
-import { collection, query, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { Product } from '../types';
+import React, { useState, useEffect } from "react";
+import { Mic, MicOff, Loader2 } from "lucide-react";
+import { useVoiceRecognition } from "../hooks/useVoiceRecognition";
+import { useCart } from "../contexts/CartContext";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase/config";
+import { Product } from "../types";
 
-interface VoiceOrderAssistantProps {
-  onOrderProcessed?: (items: any[]) => void;
-}
+// 🔹 Tokenize text
+const tokenize = (text: string) =>
+  text.toLowerCase().replace(/[^a-zA-Z0-9\u0900-\u097F\s]/g, "").split(/\s+/);
 
-const VoiceOrderAssistant: React.FC<VoiceOrderAssistantProps> = ({ onOrderProcessed }) => {
-  const [selectedLanguage, setSelectedLanguage] = useState('hi-IN');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [processingOrder, setProcessingOrder] = useState(false);
-  const [orderResult, setOrderResult] = useState<string>('');
-  
-  const { addToCart } = useCart();
-  const { isListening, transcript, startListening, stopListening, resetTranscript, isSupported } = useVoiceRecognition();
+// 🔹 Levenshtein Distance
+const levenshtein = (a: string, b: string) => {
+  const dp = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
 
-  const languages = [
-    { code: 'hi-IN', name: 'Hindi', flag: '🇮🇳' },
-    { code: 'ta-IN', name: 'Tamil', flag: '🇮🇳' },
-    { code: 'bn-IN', name: 'Bengali', flag: '🇮🇳' },
-    { code: 'en-IN', name: 'English', flag: '🇬🇧' }
-  ];
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    try {
-      const q = query(collection(db, 'products'));
-      const querySnapshot = await getDocs(q);
-      const productsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Product[];
-      setProducts(productsData);
-    } catch (error) {
-      console.error('Error fetching products:', error);
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
     }
-  };
+  }
+  return dp[a.length][b.length];
+};
 
-  const processVoiceOrder = async (voiceText: string) => {
-    setProcessingOrder(true);
-    setOrderResult('');
+// 🔹 Synonyms
+const productSynonyms: Record<string, string[]> = {
+  onion: ["onion", "pyaz", "प्याज"],
+  tomatoes: ["tomato", "tamatar", "टमाटर", "tomatoes"],
+  potatoes: ["potato", "aloo", "आलू", "potatoes"],
+  capsicum: ["capsicum", "shimla mirch", "शिमला मिर्च", "bell pepper"],
+  cabbage: ["cabbage", "patta gobhi", "पत्ता गोभी"],
+  cauliflower: ["cauliflower", "phool gobhi", "फूल गोभी"],
+  carrot: ["carrot", "gajar", "गाजर"],
+  beetroot: ["beetroot", "chakundar", "चकुंदर"],
+  ginger: ["ginger", "adrak", "अदरक"],
+  garlic: ["garlic", "lehsun", "लहसुन"],
+  green_chilli: ["green chilli", "hari mirch", "हरी मिर्च", "chillies"],
+  coriander: ["coriander", "dhaniya", "धनिया", "cilantro"],
+  spinach: ["spinach", "palak", "पालक"],
+  peas: ["peas", "matar", "मटर", "green peas"],
+  lemon: ["lemon", "nimbu", "नींबू"],
+  radish: ["radish", "mooli", "मूली"],
+  pumpkin: ["pumpkin", "kaddu", "कद्दू"],
+  paneer: ["paneer", "पनीर", "cottage cheese"],
+  milk: ["milk", "doodh", "दूध"],
+  curd: ["curd", "dahi", "दही", "yogurt"],
+  butter: ["butter", "makhan", "मक्खन"],
+  ghee: ["ghee", "घी", "clarified butter"],
+  cheese: ["cheese", "cheddar", "mozzarella"],
+  cream: ["cream", "malai", "मलाई"],
+  lassi: ["lassi", "लस्सी"],
+  atta: ["atta", "flour", "aata", "आटा", "wheat flour"],
+  maida: ["maida", "मैदा", "refined flour"],
+  rice: ["rice", "chawal", "चावल"],
+  poha: ["poha", "flattened rice", "पोहा"],
+  suji: ["suji", "semolina", "सूजी", "rava"],
+  besan: ["besan", "gram flour", "बेसन"],
 
-    try {
-      // Simple NLP processing for common Hindi/Tamil/Bengali phrases
-      const processedItems = parseVoiceOrder(voiceText);
-      
-      if (processedItems.length > 0) {
-        processedItems.forEach(item => {
-          const product = products.find(p => 
-            p.name.toLowerCase().includes(item.name.toLowerCase()) ||
-            item.name.toLowerCase().includes(p.name.toLowerCase())
-          );
-          
-          if (product) {
-            for (let i = 0; i < item.quantity; i++) {
-              addToCart({
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                unit: product.unit,
-                supplierId: product.supplierId,
-                supplierName: product.supplierName
-              });
-            }
-          }
-        });
-        
-        const confirmationMessage = generateConfirmationMessage(processedItems, selectedLanguage);
-        setOrderResult(confirmationMessage);
-        
-        // Text-to-speech confirmation
-        if ('speechSynthesis' in window) {
-          const utterance = new SpeechSynthesisUtterance(confirmationMessage);
-          utterance.lang = selectedLanguage;
-          speechSynthesis.speak(utterance);
-        }
-        
-        if (onOrderProcessed) {
-          onOrderProcessed(processedItems);
-        }
-      } else {
-        setOrderResult('Sorry, I couldn\'t understand your order. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error processing voice order:', error);
-      setOrderResult('Error processing your order. Please try again.');
-    }
-    
-    setProcessingOrder(false);
-  };
+  // ✅ Bread Variants
+  bread: ["bread", "loaf", "slice", "ब्रेड", "पाव"],
+  white_bread: ["white bread", "सफेद ब्रेड", "normal bread"],
+  brown_bread: ["brown bread", "ब्राउन ब्रेड", "whole wheat bread"],
 
-  const parseVoiceOrder = (text: string) => {
-    const items: { name: string; quantity: number }[] = [];
-    const lowerText = text.toLowerCase();
-    
-    // Common patterns for different languages
-    const patterns = {
-      quantity: /(\d+)\s*(kilo|किलो|kg|litre|लीटर|liter|packet|पैकेट)/gi,
-      items: /(aloo|आलू|potato|onion|pyaz|प्याज|oil|tel|तेल|rice|chawal|चावल|dal|दाल)/gi
-    };
-    
-    // Extract quantities and items
-    const quantityMatches = [...lowerText.matchAll(patterns.quantity)];
-    const itemMatches = [...lowerText.matchAll(patterns.items)];
-    
-    quantityMatches.forEach((qMatch, index) => {
-      const quantity = parseInt(qMatch[1]);
-      if (itemMatches[index]) {
-        const itemName = mapToEnglishName(itemMatches[index][0]);
-        items.push({ name: itemName, quantity });
-      }
-    });
-    
-    return items;
-  };
+  bun: ["bun", "पाव", "bread bun"],
+  egg: ["egg", "anda", "अंडा"],
+  chicken: ["chicken", "मुर्गा", "murgi", "चिकन"],
+  mutton: ["mutton", "goat meat", "मटन"],
+  fish: ["fish", "मछली", "machhli"],
+  salt: ["salt", "namak", "नमक"],
+  turmeric: ["turmeric", "haldi", "हल्दी"],
+  chilli_powder: ["chilli powder", "lal mirch", "लाल मिर्च"],
+  cumin: ["cumin", "jeera", "जीरा"],
+  hing: ["hing", "asafoetida", "हींग"],
+  garam_masala: ["garam masala", "गरम मसाला"],
+  chole_masala: ["chole masala", "छोले मसाला"],
+  chat_masala: ["chat masala", "चाट मसाला"],
+  black_pepper: ["black pepper", "kali mirch", "काली मिर्च"],
+  oil: ["oil", "tel", "तेल", "cooking oil", "refined oil"],
+  mustard_oil: ["mustard oil", "sarson ka tel", "सरसों का तेल"],
+  sugar: ["sugar", "chini", "चीनी"],
+  jaggery: ["jaggery", "gud", "गुड़"],
+  sev: ["sev", "bhujia", "सेव", "भुजिया"],
+  puri: ["puri", "पूरी"],
+  papdi: ["papdi", "पापड़ी"],
+  samosa: ["samosa", "समोसा"],
+  kachori: ["kachori", "कचौरी"],
+  pav: ["pav", "पाव", "bun"],
+  bhature: ["bhature", "भटूरे"],
+  noodles: ["noodles", "चाउमीन", "chowmein"],
+  sauce: ["sauce", "chutney", "सॉस", "चटनी"],
+};
 
-  const mapToEnglishName = (localName: string): string => {
-    const mapping: { [key: string]: string } = {
-      'aloo': 'potato',
-      'आलू': 'potato',
-      'pyaz': 'onion',
-      'प्याज': 'onion',
-      'tel': 'oil',
-      'तेल': 'oil',
-      'chawal': 'rice',
-      'चावल': 'rice',
-      'dal': 'lentils',
-      'दाल': 'lentils'
-    };
-    
-    return mapping[localName.toLowerCase()] || localName;
-  };
 
-  const generateConfirmationMessage = (items: any[], language: string): string => {
-    const messages = {
-      'hi-IN': `आपका ऑर्डर तैयार है: ${items.map(item => `${item.quantity} ${item.name}`).join(', ')}। धन्यवाद!`,
-      'ta-IN': `உங்கள் ஆர்டர் தயார்: ${items.map(item => `${item.quantity} ${item.name}`).join(', ')}। நன்றி!`,
-      'bn-IN': `আপনার অর্ডার প্রস্তুত: ${items.map(item => `${item.quantity} ${item.name}`).join(', ')}। ধন্যবাদ!`,
-      'en-IN': `Your order is ready: ${items.map(item => `${item.quantity} ${item.name}`).join(', ')}. Thank you!`
-    };
-    
-    return messages[language as keyof typeof messages] || messages['en-IN'];
-  };
+// 🔹 Find closest product
+const findClosestProducts = (word: string, products: Product[]): Product[] => {
+  let matches: { product: Product; score: number }[] = [];
 
-  const handleVoiceCommand = () => {
-    if (isListening) {
-      stopListening();
-      if (transcript) {
-        processVoiceOrder(transcript);
-      }
+  products.forEach((p) => {
+    const baseName = p.name.toLowerCase().trim();
+
+    if (baseName.includes(word) || word.includes(baseName)) {
+      matches.push({ product: p, score: 0 });
     } else {
-      resetTranscript();
-      startListening(selectedLanguage);
+      const synonyms = productSynonyms[baseName]
+        ? Array.from(new Set([...productSynonyms[baseName], baseName]))
+        : [baseName];
+
+      synonyms.forEach((syn) => {
+        const score = levenshtein(word, syn.trim());
+        if (score < 2) matches.push({ product: p, score });
+      });
     }
+  });
+
+  if (matches.length === 0) return [];
+
+  const minScore = Math.min(...matches.map((m) => m.score));
+  const filteredMatches = matches.filter((m) => m.score === minScore);
+
+  const cheapest = filteredMatches.reduce((prev, curr) =>
+    curr.product.price < prev.product.price ? curr : prev
+  );
+
+  return [cheapest.product];
+};
+
+// 🔹 Parse Voice Order
+const parseVoiceOrder = (text: string, products: Product[]) => {
+  const numMap: Record<string, string> = {
+    ek: "1",
+    do: "2",
+    teen: "3",
+    char: "4",
+    paanch: "5",
+    one: "1",
+    two: "2",
+    three: "3",
+    four: "4",
+    five: "5",
+    एक: "1",
+    दो: "2",
+    तीन: "3",
+    चार: "4",
+    पाँच: "5",
+    पांच: "5",
   };
 
-  if (!isSupported) {
-    return (
-      <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-lg">
-        Voice recognition is not supported in your browser.
-      </div>
-    );
+  const words = tokenize(text).map((w) => numMap[w] || w);
+  const items: { product: Product; quantity: number }[] = [];
+  const notFound: string[] = [];
+
+  for (let i = 0; i < words.length; i++) {
+    let qty = 1;
+    let word = words[i];
+
+    if (!isNaN(Number(word))) {
+      qty = Number(word);
+      i++;
+      word = words[i];
+      if (!word) continue;
+    }
+
+    const matches = findClosestProducts(word, products);
+    if (matches.length > 0) {
+      const match = matches[0];
+
+      if (!match.supplierName) {
+        notFound.push(word);
+        continue;
+      }
+
+      const existing = items.find((it) => it.product.id === match.id);
+      if (existing) existing.quantity += qty;
+      else items.push({ product: match, quantity: qty });
+    } else if (word && isNaN(Number(word))) {
+      notFound.push(word);
+    }
   }
 
+  return { items, notFound };
+};
+
+const VoiceOrderAssistant: React.FC = () => {
+  const [language, setLanguage] = useState("hi-IN");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [processing, setProcessing] = useState(false);
+  const [orderResult, setOrderResult] = useState("");
+
+  const { addToCart } = useCart();
+  const { isListening, startListening, stopListening, resetTranscript, isSupported } =
+    useVoiceRecognition();
+
+  // ✅ Fetch products & suppliers
+  useEffect(() => {
+    const fetchProductsWithSuppliers = async () => {
+      // 1️⃣ Fetch all suppliers
+      const supplierSnap = await getDocs(collection(db, "users"));
+      const supplierMap: Record<string, string> = {};
+      supplierSnap.forEach((doc) => {
+        supplierMap[doc.id.trim()] = doc.data().name || "Supplier";
+      });
+
+      // 2️⃣ Fetch all products
+      const productSnap = await getDocs(collection(db, "products"));
+      const productsData = productSnap.docs.map((doc) => {
+        const p = doc.data();
+        const supplierId = (p.supplierId || "").trim();
+
+        return {
+          id: doc.id,
+          name: (p.name || "").toLowerCase().trim(),
+          price: p.price || 0,
+          unit: p.unit || "",
+          supplierId,
+          supplierName: supplierMap[supplierId] || null, // ✅ FIXED
+        };
+      });
+
+      setProducts(productsData as Product[]);
+    };
+
+    fetchProductsWithSuppliers();
+  }, []);
+
+  const processOrder = (text: string) => {
+    if (!text.trim()) {
+      setOrderResult("❌ Could not understand your order.");
+      return;
+    }
+
+    setProcessing(true);
+    const { items, notFound } = parseVoiceOrder(text, products);
+
+    if (items.length === 0) {
+      setTimeout(() => {
+        setProcessing(false);
+        setOrderResult("❌ No valid items found.");
+      }, 1200);
+      return;
+    }
+
+    items.forEach((i) => {
+      for (let x = 0; x < i.quantity; x++) {
+        addToCart({
+          id: i.product.id,
+          name: i.product.name,
+          price: i.product.price,
+          unit: i.product.unit,
+          supplierId: i.product.supplierId,
+          supplierName: i.product.supplierName || "Supplier",
+        });
+      }
+    });
+
+    let msg = `✅ Added: ${items
+      .map((i) => `${i.quantity} ${i.product.name} (Supplier: ${i.product.supplierName})`)
+      .join(", ")}`;
+
+    if (notFound.length > 0) msg += ` | ❌ Not Found: ${notFound.join(", ")}`;
+
+    setTimeout(() => {
+      setProcessing(false);
+      setOrderResult(msg);
+
+      if ("speechSynthesis" in window) {
+        const utter = new SpeechSynthesisUtterance(msg);
+        utter.lang = language;
+        speechSynthesis.speak(utter);
+      }
+    }, 1200);
+  };
+
+  const handleMicClick = () => {
+    if (isListening) stopListening();
+    else {
+      resetTranscript();
+      startListening(language, processOrder);
+    }
+  };
+
+  if (!isSupported) return <p>❌ Browser not supported</p>;
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h3 className="text-lg font-semibold mb-4 flex items-center">
-        <Volume2 className="w-5 h-5 mr-2 text-orange-500" />
-        Voice Order Assistant
-      </h3>
-      
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Select Language
-        </label>
-        <select
-          value={selectedLanguage}
-          onChange={(e) => setSelectedLanguage(e.target.value)}
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-        >
-          {languages.map(lang => (
-            <option key={lang.code} value={lang.code}>
-              {lang.flag} {lang.name}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className="max-w-md mx-auto p-6 rounded-2xl backdrop-blur-lg bg-white/40 shadow-lg">
+      <h2 className="text-xl font-semibold text-center mb-4">🎤 Voice Ordering Assistant</h2>
 
-      <div className="flex flex-col items-center space-y-4">
+      <select
+        value={language}
+        onChange={(e) => setLanguage(e.target.value)}
+        className="w-full mb-4 p-2 rounded-lg border"
+      >
+        <option value="hi-IN">🇮🇳 Hindi</option>
+        <option value="en-IN">🇬🇧 English</option>
+      </select>
+
+      <div className="flex justify-center mb-4">
         <button
-          onClick={handleVoiceCommand}
-          disabled={processingOrder}
-          className={`p-4 rounded-full transition-all ${
-            isListening 
-              ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
-              : 'bg-orange-500 hover:bg-orange-600'
-          } text-white disabled:opacity-50`}
+          onClick={handleMicClick}
+          className={`p-6 rounded-full ${
+            isListening ? "bg-red-500 animate-pulse" : "bg-orange-500"
+          } text-white`}
         >
-          {isListening ? <MicOff className="w-8 h-8" /> : <Mic className="w-8 h-8" />}
+          {isListening ? <MicOff size={36} /> : <Mic size={36} />}
         </button>
-        
-        <p className="text-sm text-gray-600 text-center">
-          {isListening ? 'Listening... Speak your order' : 'Tap to start voice ordering'}
+      </div>
+
+      {processing && (
+        <div className="flex justify-center text-orange-600">
+          <Loader2 className="animate-spin" size={18} />
+          <span className="ml-2">Processing...</span>
+        </div>
+      )}
+
+      {orderResult && (
+        <p className="p-3 mt-3 bg-green-100 text-green-700 rounded-lg text-center">
+          {orderResult}
         </p>
-
-        {transcript && (
-          <div className="w-full p-3 bg-gray-100 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong>You said:</strong> {transcript}
-            </p>
-          </div>
-        )}
-
-        {processingOrder && (
-          <div className="flex items-center space-x-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-orange-500 border-t-transparent"></div>
-            <span className="text-sm text-gray-600">Processing your order...</span>
-          </div>
-        )}
-
-        {orderResult && (
-          <div className="w-full p-3 bg-green-100 border-l-4 border-green-500 rounded">
-            <p className="text-sm text-green-700">{orderResult}</p>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-4 text-xs text-gray-500">
-        <p><strong>Examples:</strong></p>
-        <p>Hindi: "2 kilo aloo aur 1 litre tel chahiye"</p>
-        <p>English: "I need 2 kg potatoes and 1 liter oil"</p>
-      </div>
+      )}
     </div>
   );
 };
