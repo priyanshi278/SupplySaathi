@@ -24,7 +24,7 @@ const VendorHome: React.FC = () => {
         <h1 className="text-4xl font-extrabold text-indigo-800 mb-2 text-center drop-shadow-lg animate-fade-in">
           Welcome, {username || userData?.name || 'Vendor'}!
         </h1>
-        <div className="text-lg text-gray-600 mb-8 text-center">to Street Food Hub</div>
+        <div className="text-lg text-gray-600 mb-8 text-center">to SupplySaathi</div>
         {/* Offers Section with Animation */}
         <div className="w-full mb-8">
           <h2 className="text-2xl font-bold text-yellow-600 mb-4 text-center animate-bounce">🔥 Offers for You</h2>
