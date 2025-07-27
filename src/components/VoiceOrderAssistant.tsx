@@ -286,38 +286,53 @@ const VoiceOrderAssistant: React.FC = () => {
   if (!isSupported) return <p>❌ Browser not supported</p>;
 
   return (
-    <div className="max-w-md mx-auto p-6 rounded-2xl backdrop-blur-lg bg-white/40 shadow-lg">
-      <h2 className="text-xl font-semibold text-center mb-4">🎤 Voice Ordering Assistant</h2>
-
-      <select
-        value={language}
-        onChange={(e) => setLanguage(e.target.value)}
-        className="w-full mb-4 p-2 rounded-lg border"
+    <div className="w-full flex flex-col items-center">
+      <div
+        className="max-w-2xl w-full mx-auto p-6 pb-8 rounded-2xl shadow-xl bg-gradient-to-br from-blue-50 via-white to-blue-100 border border-blue-200 flex flex-col sm:flex-row items-center justify-between gap-4"
+        style={{ marginBottom: "2.5rem" }} // Adds space below the box
       >
-        <option value="hi-IN">🇮🇳 Hindi</option>
-        <option value="en-IN">🇬🇧 English</option>
-      </select>
-
-      <div className="flex justify-center mb-4">
-        <button
-          onClick={handleMicClick}
-          className={`p-6 rounded-full ${
-            isListening ? "bg-red-500 animate-pulse" : "bg-orange-500"
-          } text-white`}
-        >
-          {isListening ? <MicOff size={36} /> : <Mic size={36} />}
-        </button>
+        {/* Left: Heading & Intro */}
+        <div className="flex-1 flex flex-col items-start">
+          <h2 className="text-xl font-semibold text-blue-800 mb-1 drop-shadow-sm">
+            🎤 Voice Ordering Assistant
+          </h2>
+          <p className="text-gray-600 text-sm mb-2">
+            Order raw materials by voice in Hindi or English.
+          </p>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="p-2 rounded-lg border border-blue-300 bg-white shadow-sm focus:ring-2 focus:ring-blue-200"
+          >
+            <option value="hi-IN">🇮🇳 Hindi</option>
+            <option value="en-IN">🇬🇧 English</option>
+          </select>
+        </div>
+        {/* Right: Mic Button */}
+        <div className="flex-shrink-0 flex items-center justify-center">
+          <button
+            onClick={handleMicClick}
+            className={`p-6 rounded-full shadow-lg transition-all duration-200 border-2 ${
+              isListening
+                ? "bg-red-500 border-red-200 animate-pulse scale-110"
+                : "bg-blue-500 border-blue-300 hover:scale-105"
+            } text-white`}
+            aria-label={isListening ? "Stop Listening" : "Start Listening"}
+          >
+            {isListening ? <MicOff size={36} /> : <Mic size={36} />}
+          </button>
+        </div>
       </div>
 
       {processing && (
-        <div className="flex justify-center text-orange-600">
-          <Loader2 className="animate-spin" size={18} />
+        <div className="flex justify-center text-blue-700 mb-2">
+          <Loader2 className="animate-spin" size={20} />
           <span className="ml-2">Processing...</span>
         </div>
       )}
 
       {orderResult && (
-        <p className="p-3 mt-3 bg-green-100 text-green-700 rounded-lg text-center">
+        <p className="p-3 mt-3 bg-green-50 text-green-800 border border-green-200 rounded-lg text-center w-full shadow max-w-2xl mx-auto">
           {orderResult}
         </p>
       )}
@@ -326,3 +341,4 @@ const VoiceOrderAssistant: React.FC = () => {
 };
 
 export default VoiceOrderAssistant;
+
